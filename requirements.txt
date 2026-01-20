@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+numpy
+pandas
+redis
+sqlalchemy
+psycopg2-binary
+python-multipart
+python-json-logger

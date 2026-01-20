@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defect Warning Dashboard v2.0</title>
+    <!-- 引入 Vue 3 和 ECharts -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .chart-container {
+            height: 500px;
+            width: 100%;
+            border-radius: 0.5rem;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+        }
+
+        /* Modal Transition */
+        .modal-enter-active,
+        .modal-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-enter-from,
+        .modal-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div id="app">
+        <!-- Header & Filters -->
+        <!-- Navbar -->
+        <nav class="bg-white shadow mb-6 rounded-lg px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <span class="text-xl font-bold text-gray-800">🏭 缺陷预警系统</span>
+                <div class="flex bg-gray-100 rounded-lg p-1">
+                    <button @click="currentTab = 'dashboard'"
+                        :class="['px-4 py-1.5 rounded-md text-sm font-medium transition', currentTab === 'dashboard' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                        📊 监控看板
+                    </button>
+                    <button @click="currentTab = 'config'"
+                        :class="['px-4 py-1.5 rounded-md text-sm font-medium transition', currentTab === 'config' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700']">
+                        ⚙️ 参数配置
+                    </button>
+                </div>
+            </div>
+            <div class="text-sm text-gray-500">v2.1.0</div>
+        </nav>
+
+        <!-- DASHBOARD VIEW -->
+        <div v-show="currentTab === 'dashboard'">
+            <!-- 筛选栏 -->
+            <div class="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-4 items-end">
+
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                    <input type="text" list="item-names" v-model="filters.item_name" @input="fetchOptions"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
+                        placeholder="Select or type Item...">
+                    <datalist id="item-names">
+                        <option v-for="item in options.items" :key="item" :value="item"></option>
+                    </datalist>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Station <span
+                            class="text-red-500">*</span></label>
+                    <select v-model="filters.station" @change="fetchOptions"
+                        class="w-full border rounded p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Station</option>
+                        <option v-for="s in options.stations" :key="s" :value="s">{{ s }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product <span
+                            class="text-red-500">*</span></label>
+                    <select v-model="filters.product" @change="fetchOptions"
+                        class="w-full border rounded p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Product</option>
+                        <option v-for="p in options.products" :key="p" :value="p">{{ p }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Line <span
+                            class="text-red-500">*</span></label>
+                    <select v-model="filters.line" @change="fetchOptions"
+                        class="w-full border rounded p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Line</option>
+                        <option v-for="l in options.lines" :key="l" :value="l">{{ l }}</option>
+                    </select>
+                </div>
+                <div class="flex-1 min-w-[150px]">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                    <input v-model="filters.start_time" type="date"
+                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                </div>
+                <!-- End Time & Search Btn -->
+                <div class="flex-1 min-w-[150px] flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                        <input v-model="filters.end_time" type="date"
+                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border">
+                    </div>
+                    <button @click="searchHistory"
+                        class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 self-end h-[42px] flex items-center">
+                        <i class="fas fa-search mr-2"></i> 查询
+                    </button>
+                </div>
+            </div>
+            </header>
+
+            <!-- Main Chart -->
+            <div class="mb-6">
+                <div class="flex justify-between items-end mb-2">
+                    <h2 class="text-lg font-semibold text-gray-700">📈 检测趋势总览</h2>
+                    <span class="text-sm text-gray-400">双击图表可缩放，鼠标滚轮平移</span>
+                </div>
+                <div id="mainChart" class="chart-container"></div>
+            </div>
+
+            <!-- Secondary Grid -->
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Baseline Chart -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2 text-gray-700">📊 统计特征变化</h2>
+                    <div id="baselineChart" class="chart-container" style="height: 400px;"></div>
+                </div>
+                <!-- Alert History -->
+                <div>
+                    <h2 class="text-lg font-semibold mb-2 text-gray-700">🚨 最近报警记录 (点击查看详情)</h2>
+                    <div class="chart-container overflow-auto" style="height: 400px; padding: 0;">
+                        <table class="w-full text-sm text-left text-gray-500">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3">Item</th>
+                                    <th class="px-4 py-3">Time</th>
+                                    <th class="px-4 py-3">Val / H</th>
+                                    <th class="px-4 py-3 text-right">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <tr v-for="record in alertRecords" :key="record.id" @click="openDetail(record)"
+                                    class="cursor-pointer hover:bg-red-50 transition-colors">
+                                    <td class="px-4 py-3 font-medium text-gray-900">{{ record.item_name }}</td>
+                                    <td class="px-4 py-3">{{ formatTime(record.timestamp) }}</td>
+                                    <td class="px-4 py-3">
+                                        <div>V: {{ record.value.toFixed(4) }}</div>
+                                        <div class="text-xs text-gray-400">H: {{ record.h_value?.toFixed(2) }}</div>
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-red-600">{{ record.s_plus.toFixed(1)
+                                        }}
+                                    </td>
+                                </tr>
+                                <tr v-if="alertRecords.length === 0">
+                                    <td colspan="4" class="text-center py-8 text-gray-400">暂无报警记录</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Modal -->
+            <Transition name="modal">
+                <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    @click.self="showModal = false">
+                    <div class="bg-white rounded-lg shadow-xl w-3/4 max-w-5xl p-6 h-3/4 flex flex-col">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <div>
+                                <h3 class="text-xl font-bold text-gray-800">🔍 报警详情分析</h3>
+                                <p class="text-sm text-gray-500">Item: {{ selectedRecord?.item_name }} | Time: {{
+                                    formatTime(selectedRecord?.timestamp) }}</p>
+                            </div>
+                            <button @click="showModal = false"
+                                class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                        </div>
+
+                        <div id="detailChart" class="flex-grow w-full bg-gray-50 rounded"></div>
+
+                        <div class="grid grid-cols-4 gap-4 mt-4 text-sm text-gray-600 bg-gray-100 p-3 rounded">
+                            <div>Station: <span class="font-medium text-gray-800">{{ selectedRecord?.station || '-'
+                                    }}</span></div>
+                            <div>Product: <span class="font-medium text-gray-800">{{ selectedRecord?.product || '-'
+                                    }}</span></div>
+                            <div>Line: <span class="font-medium text-gray-800">{{ selectedRecord?.line || '-' }}</span>
+                            </div>
+                            <div>CUSUM Score: <span class="font-bold text-red-600">{{ selectedRecord?.s_plus.toFixed(2)
+                                    }}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
+        </div><!-- End of Dashboard View -->
+
+        <!-- CONFIGURATION VIEW -->
+        <div v-show="currentTab === 'config'" class="space-y-6">
+
+            <!-- Global Config Card -->
+            <div class="bg-blue-50 border border-blue-100 rounded-lg p-6 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800">🌐 默认策略配置 (Default Policy)</h2>
+                        <p class="text-sm text-gray-500 mt-1">此处的设置将作为默认值应用到<b>新导入</b>的监控项。<b>不会</b>影响已运行的项目。</p>
+                    </div>
+                    <button @click="saveGlobalConfig"
+                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 shadow-sm transition">
+                        <i class="fas fa-save mr-1"></i> Save Global Policy
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Target Shift -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-search-plus mr-1 text-blue-500"></i> 目标偏移 (Target σ)
+                        </label>
+                        <input type="number" step="0.1" v-model.number="globalDefaults.target_shift_sigma"
+                            class="w-full border-gray-300 rounded shadow-sm p-2 mb-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>检测灵敏度 (Sensitivity)</strong></p>
+                            <p>设定需要检测的偏移量（标准差倍数）。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>0.5~1.0: 高灵敏，易误报。</li>
+                                <li>1.5~2.0: 推荐，平衡点。</li>
+                                <li>>2.5: 宽松，仅抓大异常。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Target ARL0 -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-shield-alt mr-1 text-green-500"></i> 误报控制 (Target ARL₀)
+                        </label>
+                        <input type="number" step="10" v-model.number="globalDefaults.target_arl0"
+                            class="w-full border-gray-300 rounded shadow-sm p-2 mb-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>误报控制 (False Alarm Rate)</strong></p>
+                            <p>设定无缺陷时的预期平均运行长度。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>100~300: 反应快，误报略多。</li>
+                                <li>500~1000: 极少误报，延迟稍高。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Estimated h (Calculated) -->
+                    <div class="bg-blue-50 p-3 rounded border border-blue-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-blue-800 mb-1">
+                            <i class="fas fa-calculator mr-1"></i> 预估阈值 (Estimated h)
+                        </label>
+                        <div class="text-3xl font-mono font-bold text-blue-700 my-2">
+                            {{ calculateH(globalDefaults.target_shift_sigma, globalDefaults.target_arl0) }}
+                        </div>
+                        <div class="text-xs text-blue-600 space-y-1">
+                            <p><strong>实际报警阈值</strong></p>
+                            <p class="opacity-80">根据 Shift 和 ARL0 自动计算。</p>
+                            <p class="font-mono text-[10px] mt-1">h ≈ 2/σ² * ln(ARL₀)</p>
+                        </div>
+                    </div>
+
+                    <!-- Cooldown -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-snowflake mr-1 text-cyan-500"></i> 冷却周期 (Cooldown)
+                        </label>
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="number" step="1" v-model.number="globalDefaults.cooldown_periods"
+                                class="w-full border-gray-300 rounded shadow-sm p-2" placeholder="Value">
+                            <div class="flex items-center">
+                                <input type="checkbox" v-model="globalDefaults.enable_cooldown"
+                                    class="h-4 w-4 text-blue-600 rounded cursor-pointer" title="Enable/Disable">
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>报警冷却 (Suppression)</strong></p>
+                            <p>报警触发后暂停监测的周期数，防刷屏。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>建议值: 10~50 (取决于采样率)。</li>
+                                <li>Ticks: On=启用, Off=禁用。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Monitoring Side -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-arrows-alt-v mr-1 text-purple-500"></i> 监控方向 (Monitoring Side)
+                        </label>
+                        <select v-model="globalDefaults.monitoring_side"
+                            class="w-full border-gray-300 rounded shadow-sm p-2 mb-2 text-sm bg-white">
+                            <option value="upper">上限 (Upper) - 飙升</option>
+                            <option value="lower">下限 (Lower) - 骤降</option>
+                            <option value="both">双侧 (Both) - 波动</option>
+                            <option value="">自动 (None/Auto)</option>
+                        </select>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>监控方向 (Direction)</strong></p>
+                            <p>设定关注的异常方向。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>Upper: 关注数值变大 (如缺陷率)。</li>
+                                <li>Lower: 关注数值变小 (如良率)。</li>
+                                <li>Both: 关注双向波动。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Base UPH -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-industry mr-1 text-orange-500"></i> 基准产能 (Base UPH)
+                        </label>
+                        <input type="number" step="1" v-model.number="globalDefaults.base_uph" placeholder="500"
+                            class="w-full border-gray-300 rounded shadow-sm p-2 mb-2 focus:ring-blue-500 focus:border-blue-500">
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>基准产能 (Standard Capacity)</strong></p>
+                            <p>用于低产能不能时的波动标准化。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>默认: 500 pcs/hr。</li>
+                                <li>若实际UPH远低于此，会自动放宽阈值。</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Penalty Strength -->
+                    <div class="bg-white p-3 rounded border border-gray-100 hover:shadow-sm transition">
+                        <label class="block text-sm font-bold text-gray-700 mb-1">
+                            <i class="fas fa-balance-scale mr-1 text-pink-500"></i> 低产宽容度 (Penalty Strength)
+                        </label>
+                        <select v-model.number="globalDefaults.penalty_strength"
+                            class="w-full border-gray-300 rounded shadow-sm p-2 mb-2 text-sm bg-white">
+                            <option :value="1.0">严格 (Strict 1.0)</option>
+                            <option :value="0.6">适中 (Moderate 0.6)</option>
+                            <option :value="0.3">宽松 (Relaxed 0.3)</option>
+                        </select>
+                        <div class="text-xs text-gray-500 space-y-1">
+                            <p><strong>低产宽容度 (Tolerance)</strong></p>
+                            <p>产能不足时，对波动的容忍程度。</p>
+                            <ul class="list-disc pl-3 text-gray-400">
+                                <li>1.0: 严格，按统计学规律放宽。</li>
+                                <li>0.3: 宽松，假设即便是低产也很稳定。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <!-- Header Actions Row -->
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                        <span>📋 监控项列表</span>
+                        <span class="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full">Total: {{
+                            Object.keys(filteredConfigs).length }}</span>
+                    </h2>
+                    <div class="flex gap-2">
+                        <button v-if="selectedItems.length > 0" @click="batchDelete"
+                            class="text-red-600 hover:text-red-800 text-sm flex items-center bg-red-50 px-3 py-1.5 rounded border border-red-200 transition">
+                            <i class="fas fa-trash-alt mr-1"></i> 批量删除 ({{ selectedItems.length }})
+                        </button>
+                        <button @click="openImportModal"
+                            class="text-green-600 hover:text-green-800 text-sm flex items-center bg-green-50 px-3 py-1.5 rounded border border-green-200 transition">
+                            <i class="fas fa-plus-circle mr-1"></i> 创建检测器
+                        </button>
+                        <button @click="fetchConfigs"
+                            class="text-blue-600 hover:text-blue-800 text-sm flex items-center bg-blue-50 px-3 py-1.5 rounded border border-blue-200 transition">
+                            <i class="fas fa-sync mr-1"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters Row -->
+                <div class="bg-gray-50 p-3 rounded mb-4 border border-gray-100">
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500 text-xs font-bold uppercase">Search:</span>
+                            <div class="relative">
+                                <i class="fas fa-search absolute left-2 top-2.5 text-gray-400 text-xs"></i>
+                                <input v-model="configFilters.itemName" type="text" placeholder="Item Name..."
+                                    class="border border-gray-300 rounded pl-7 pr-2 py-1.5 text-sm w-56 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition bg-white">
+                            </div>
+                        </div>
+
+                        <div class="h-6 w-px bg-gray-300"></div>
+
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500 text-xs font-bold uppercase">Context:</span>
+                            <input v-model="configFilters.product" type="text" placeholder="Product"
+                                class="border border-gray-300 rounded px-2 py-1.5 text-sm w-32 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition bg-white">
+                            <input v-model="configFilters.station" type="text" placeholder="Station"
+                                class="border border-gray-300 rounded px-2 py-1.5 text-sm w-28 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition bg-white">
+                            <input v-model="configFilters.line" type="text" placeholder="Line"
+                                class="border border-gray-300 rounded px-2 py-1.5 text-sm w-24 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 transition bg-white">
+                        </div>
+
+                        <button
+                            v-if="configFilters.itemName || configFilters.product || configFilters.station || configFilters.line"
+                            @click="Object.assign(configFilters, {itemName: '', product: '', station: '', line: ''})"
+                            class="ml-auto text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 table-fixed">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 w-10">
+                                    <input type="checkbox" :checked="isAllSelected" @click="toggleSelectAll"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th class="px-4 py-3 w-[550px]">Item Name</th>
+                                <th class="px-4 py-3 w-28">Product</th>
+                                <th class="px-4 py-3 w-24">Station</th>
+                                <th class="px-4 py-3 w-20">Line</th>
+                                <th class="px-4 py-3 w-20" title="Target Shift (σ)">Shift(σ)</th>
+                                <th class="px-4 py-3 w-20">ARL₀</th>
+                                <th class="px-4 py-3 w-20">Cool</th>
+                                <th class="px-4 py-3 w-20">μ₀</th>
+                                <th class="px-4 py-3 w-20">UPH</th>
+                                <th class="px-4 py-3 w-20">Pen</th>
+                                <th class="px-4 py-3 w-20">Side</th>
+                                <th class="px-4 py-3 w-36 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="(item, key) in filteredConfigs" :key="key" class="hover:bg-gray-50">
+                                <td class="px-4 py-3">
+                                    <input type="checkbox" :value="key" v-model="selectedItems"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </td>
+
+                                <td class="px-4 py-3 font-medium text-gray-900 truncate" :title="item.meta.item_name">
+                                    {{ item.meta.item_name }}
+                                </td>
+
+                                <!-- Context Columns -->
+                                <td class="px-4 py-3">
+                                    <span v-if="item.meta.product"
+                                        class="bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-0.5 rounded">{{
+                                        item.meta.product }}</span>
+                                    <span v-else class="text-gray-400 text-xs">ALL (Generic)</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span v-if="item.meta.station" class="text-gray-900">{{ item.meta.station }}</span>
+                                    <span v-else class="text-gray-400 text-xs">-</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span v-if="item.meta.line" class="text-gray-900">{{ item.meta.line }}</span>
+                                    <span v-else class="text-gray-400 text-xs">-</span>
+                                </td>
+
+                                <td class="px-4 py-3">{{ item.conf.target_shift_sigma ??
+                                    globalDefaults.target_shift_sigma }}
+                                </td>
+                                <td class="px-4 py-3">{{ item.conf.target_arl0 ?? globalDefaults.target_arl0 }}</td>
+                                <td class="px-4 py-3">{{ item.conf.cooldown_periods ?? globalDefaults.cooldown_periods
+                                    }}
+                                </td>
+                                <td class="px-4 py-3 font-mono text-xs">
+                                    <span v-if="item.conf.mu0 !== undefined">{{ item.conf.mu0.toFixed(5) }}</span>
+                                    <span v-else class="text-gray-400">0.00050 (Def)</span>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-xs">
+                                    {{ item.conf.base_uph ?? 500 }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span v-if="item.conf.penalty_strength === 1.0"
+                                        class="text-xs bg-gray-100 px-1 rounded">Strict</span>
+                                    <span v-else-if="item.conf.penalty_strength === 0.6"
+                                        class="text-xs bg-yellow-100 px-1 rounded">Mod</span>
+                                    <span v-else-if="item.conf.penalty_strength === 0.3"
+                                        class="text-xs bg-green-100 px-1 rounded">Relax</span>
+                                    <span v-else class="text-gray-400 text-xs">1.0</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span
+                                        v-if="(item.conf.monitoring_side || globalDefaults.monitoring_side) === 'upper'"
+                                        class="px-2 py-0.5 rounded text-xs bg-red-100 text-red-800">Upper</span>
+                                    <span
+                                        v-else-if="(item.conf.monitoring_side || globalDefaults.monitoring_side) === 'lower'"
+                                        class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">Lower</span>
+                                    <span
+                                        v-else-if="(item.conf.monitoring_side || globalDefaults.monitoring_side) === 'both'"
+                                        class="px-2 py-0.5 rounded text-xs bg-purple-100 text-purple-800">Both</span>
+                                    <span v-else class="text-gray-400">-</span>
+                                </td>
+                                <td class="px-4 py-3 text-right flex justify-end gap-3">
+                                    <button @click="openConfigEdit(key, item.conf)"
+                                        class="text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+                                    <button @click="deleteItem(key)" class="text-red-500 hover:text-red-700"
+                                        title="Delete Item">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="Object.keys(filteredConfigs).length === 0">
+                                <td colspan="13" class="text-center py-8 text-gray-400">暂无配置项（请先进行数据注入）</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Items Modal -->
+        <Transition name="modal">
+            <div v-if="showImportModal"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-gray-800">📥 批量导入监控项 (Batch Import)</h3>
+                        <button @click="showImportModal = false"
+                            class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                    </div>
+
+                    <div class="mb-4">
+                        <!-- Context Settings (New) -->
+                        <div class="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+                            <h4 class="font-semibold text-gray-800 text-sm mb-2"><i
+                                    class="fas fa-tag mr-1 text-blue-600"></i> 检测生效范围 (必填)</h4>
+                            <div class="grid grid-cols-3 gap-2 text-sm">
+                                <div>
+                                    <label class="block text-gray-600 mb-1">产品 (Product) <span
+                                            class="text-red-500">*</span></label>
+                                    <input type="text" v-model="batchContext.product" placeholder="例如: Phone15"
+                                        class="w-full border rounded p-1 border-blue-300 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">工站 (Station) <span
+                                            class="text-red-500">*</span></label>
+                                    <input type="text" v-model="batchContext.station" placeholder="例如: S01"
+                                        class="w-full border rounded p-1 border-blue-300 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">产线 (Line) <span
+                                            class="text-red-500">*</span></label>
+                                    <input type="text" v-model="batchContext.line" placeholder="例如: L-A"
+                                        class="w-full border rounded p-1 border-blue-300 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">请务必与MES数据范围保持一致。</p>
+                        </div>
+
+                        <!-- Batch Settings Toggle -->
+                        <div class="mb-4 border rounded p-3 bg-gray-50">
+                            <div class="flex justify-between items-center cursor-pointer"
+                                @click="showBatchSettings = !showBatchSettings">
+                                <h4 class="font-semibold text-gray-700 text-sm"><i class="fas fa-sliders-h mr-1"></i>
+                                    批量参数配置 (Batch Settings)</h4>
+                                <i :class="showBatchSettings ? 'fa-chevron-up' : 'fa-chevron-down'"
+                                    class="fas text-gray-400"></i>
+                            </div>
+
+                            <div v-show="showBatchSettings" class="mt-3 grid grid-cols-2 gap-3 text-sm transition-all">
+                                <div>
+                                    <label class="block text-gray-600 mb-1">目标偏移 (Target σ)</label>
+                                    <input type="number" step="0.1" v-model.number="batchConfig.target_shift_sigma"
+                                        class="w-full border rounded p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">误报控制 (ARL₀)</label>
+                                    <input type="number" step="10" v-model.number="batchConfig.target_arl0"
+                                        class="w-full border rounded p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">冷却周期 (Cooldown)</label>
+                                    <input type="number" step="1" v-model.number="batchConfig.cooldown_periods"
+                                        class="w-full border rounded p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">监控方向 (Side)</label>
+                                    <select v-model="batchConfig.monitoring_side"
+                                        class="w-full border rounded p-1 bg-white">
+                                        <option value="upper">上限 (Upper)</option>
+                                        <option value="lower">下限 (Lower)</option>
+                                        <option value="both">双侧 (Both)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">基准产能 (Base UPH)</label>
+                                    <input type="number" step="1" v-model.number="batchConfig.base_uph"
+                                        placeholder="500" class="w-full border rounded p-1">
+                                </div>
+                                <div>
+                                    <label class="block text-gray-600 mb-1">容忍度 (Penalty)</label>
+                                    <select v-model.number="batchConfig.penalty_strength"
+                                        class="w-full border rounded p-1 bg-white">
+                                        <option :value="1.0">严格 (Strict 1.0)</option>
+                                        <option :value="0.6">适中 (Mod 0.6)</option>
+                                        <option :value="0.3">宽松 (Relax 0.3)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex border-b border-gray-200 mb-4">
+                            <button class="px-4 py-2 border-b-2 font-medium text-sm text-blue-600 border-blue-600">
+                                <i class="fas fa-paste mr-2"></i>文本粘贴 (Text Paste)
+                            </button>
+                            <button @click="triggerFileUpload"
+                                class="px-4 py-2 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                                <i class="fas fa-file-excel mr-2"></i>文件上传 (File Upload)
+                            </button>
+                            <input type="file" ref="fileInput" class="hidden" accept=".csv,.txt,.xlsx,.xls"
+                                @change="handleFileUpload">
+                        </div>
+
+                        <p class="text-sm text-gray-600 mb-2">
+                            请粘贴 Item Name 列表（每行一个）。支持直接从 Excel/CSV 复制整列。<br>
+                            <span class="text-xs text-gray-400">也支持上传 .xlsx/.csv/.txt 文件 (自动提取第一列)。</span>
+                        </p>
+                        <textarea v-model="importText"
+                            class="w-full h-48 border rounded p-3 text-sm font-mono bg-gray-50 focus:bg-white"
+                            placeholder="S01_CABLE_TEAR_3_1&#10;S01_CABLE_TEAR_3_2&#10;..."></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-3 border-t pt-4">
+                        <button @click="showImportModal = false"
+                            class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button @click="batchImport"
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            <i class="fas fa-check mr-1"></i> Start Import
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+
+        <!-- Edit Config Modal -->
+        <Transition name="modal">
+            <div v-if="showConfigModal"
+                class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+                    <div class="flex justify-between items-center mb-4 border-b pb-2">
+                        <h3 class="text-lg font-bold text-gray-800">编辑配置: {{ editingItemName }}</h3>
+                        <button @click="showConfigModal = false"
+                            class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Target Shift Sigma (敏锐度)</label>
+                            <input type="number" step="0.1" v-model.number="editingConfig.target_shift_sigma"
+                                class="w-full border rounded p-2">
+                            <p class="text-xs text-gray-500 mt-1">检测多少个标准差的偏移。越小越灵敏。</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Target ARL0 (误报控制)</label>
+                            <input type="number" step="10" v-model.number="editingConfig.target_arl0"
+                                class="w-full border rounded p-2">
+                            <p class="text-xs text-gray-500 mt-1">平均运行长度(无缺陷时多久误报一次)。越大误报越少。</p>
+                        </div>
+
+                        <!-- Calculated H Preview -->
+                        <div class="bg-blue-50 border border-blue-100 rounded p-2 flex justify-between items-center">
+                            <span class="text-xs font-bold text-blue-800">Predicted Threshold (h):</span>
+                            <span class="text-lg font-mono font-bold text-blue-700">
+                                {{ calculateH(editingConfig.target_shift_sigma, editingConfig.target_arl0) }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cooldown Periods (报警冷却)</label>
+                            <input type="number" step="1" v-model.number="editingConfig.cooldown_periods"
+                                class="w-full border rounded p-2">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Base μ0 (初始基准)</label>
+                                <input type="number" step="0.00001" v-model.number="editingConfig.mu0"
+                                    class="w-full border rounded p-2 text-sm font-mono" placeholder="Default">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Side (监控方向)</label>
+                                <select v-model="editingConfig.monitoring_side"
+                                    class="w-full border rounded p-2 bg-white">
+                                    <option value="upper">Upper (上限-飙升)</option>
+                                    <option value="lower">Lower (下限-骤降)</option>
+                                    <option value="both">Both (双侧-波动)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Base UPH (基准产能)</label>
+                                <input type="number" step="1" v-model.number="editingConfig.base_uph"
+                                    class="w-full border rounded p-2 text-sm font-mono" placeholder="500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Penalty (宽容度)</label>
+                                <select v-model.number="editingConfig.penalty_strength"
+                                    class="w-full border rounded p-2 bg-white">
+                                    <option :value="1.0">Strict (1.0)</option>
+                                    <option :value="0.6">Moderate (0.6)</option>
+                                    <option :value="0.3">Relaxed (0.3)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end gap-3">
+                        <button @click="showConfigModal = false"
+                            class="px-4 py-2 border rounded text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button @click="saveConfig"
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save
+                            Changes</button>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted, nextTick, computed } = Vue;
+
+        createApp({
+            setup() {
+                const currentTab = ref('dashboard');
+
+                // Dashboard State
+                const filters = reactive({
+                    item_name: '',
+                    station: '',
+                    product: '',
+                    line: '',
+                    start_time: '',
+                    end_time: ''
+                });
+
+                // Initialize with 24h default
+                onMounted(() => {
+                    const end = new Date();
+                    const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+                    // Format to YYYY-MM-DD (input type="date")
+                    filters.end_time = end.toISOString().split('T')[0];
+                    filters.start_time = start.toISOString().split('T')[0];
+                    fetchOptions();
+                    fetchConfigs();
+                    // Do not auto-search on load anymore, as context is required
+                });
+
+                const options = ref({ items: [], stations: [], products: [], lines: [] });
+                const alertRecords = ref([]);
+                const showModal = ref(false);
+                const selectedRecord = ref(null);
+                let mainChart = null, baselineChart = null, detailChart = null;
+
+                // --- Chart Render Logic (Hoisted) ---
+                const renderCharts = (data) => {
+                    const timestamps = data.map(r => formatTime(r.timestamp));
+                    const commonOption = () => ({
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                        grid: { left: '3%', right: '3%', bottom: '10%', containLabel: true },
+                        dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 10 }],
+                        xAxis: { type: 'category', data: timestamps, boundaryGap: false }
+                    });
+
+                    // Main Chart
+                    if (mainChart) mainChart.dispose();
+                    mainChart = echarts.init(document.getElementById('mainChart'));
+                    mainChart.setOption({
+                        ...commonOption(),
+                        legend: { data: ['Value', 'Threshold (h)', 'CUSUM'] },
+                        yAxis: [
+                            { type: 'value', name: 'Value', position: 'left' },
+                            { type: 'value', name: 'Score', position: 'right', splitLine: { show: false } }
+                        ],
+                        series: [
+                            { name: 'Value', type: 'line', data: data.map(r => r.value), yAxisIndex: 0, smooth: true, itemStyle: { color: '#3b82f6' }, areaStyle: { opacity: 0.1 } },
+                            { name: 'Threshold (h)', type: 'line', data: data.map(r => r.h_value), yAxisIndex: 1, lineStyle: { type: 'dashed', color: '#ef4444' }, showSymbol: false },
+                            { name: 'CUSUM', type: 'line', data: data.map(r => r.s_plus), yAxisIndex: 1, lineStyle: { color: '#f59e0b', width: 2 } }
+                        ]
+                    });
+
+                    // Baseline Chart
+                    if (baselineChart) baselineChart.dispose();
+                    baselineChart = echarts.init(document.getElementById('baselineChart'));
+                    baselineChart.setOption({
+                        ...commonOption(),
+                        legend: { data: ['Baseline (μ)', 'Std (σ)'] },
+                        yAxis: [{ type: 'value', name: 'μ' }, { type: 'value', name: 'σ', position: 'right' }],
+                        series: [
+                            { name: 'Baseline (μ)', type: 'line', data: data.map(r => r.baseline), yAxisIndex: 0, color: '#10b981' },
+                            { name: 'Std (σ)', type: 'line', data: data.map(r => r.std), yAxisIndex: 1, color: '#8b5cf6', showSymbol: false }
+                        ]
+                    });
+                    echarts.connect([mainChart, baselineChart]);
+                };
+
+                const fetchData = async () => {
+                    // 构建 Query String
+                    const params = new URLSearchParams();
+                    if (filters.item_name) params.append('item_name', filters.item_name);
+                    if (filters.station) params.append('station', filters.station);
+                    if (filters.product) params.append('product', filters.product);
+                    if (filters.line) params.append('line', filters.line);
+                    if (filters.start_time) params.append('start_time', filters.start_time + 'T00:00:00');
+                    if (filters.end_time) params.append('end_time', filters.end_time + 'T23:59:59');
+                    params.append('limit', '20000'); // Ensure we get enough points
+
+                    try {
+                        const res = await fetch(`/api/v1/history?${params.toString()}`);
+                        const data = await res.json();
+
+                        if (data.length === 0) {
+                            if (mainChart) mainChart.clear();
+                            if (baselineChart) baselineChart.clear();
+                            alertRecords.value = [];
+                            // Optional: Alert user
+                            console.log("No data found for criteria");
+                            return;
+                        }
+
+                        renderCharts(data);
+                        alertRecords.value = data.filter(r => r.is_alert).reverse().slice(0, 100);
+                    } catch (e) {
+                        console.error("Fetch failed", e);
+                    }
+                };
+
+                const searchHistory = async () => {
+                    if (!filters.item_name) return;
+                    // Strict Context Validation
+                    if (!filters.station || !filters.product || !filters.line) {
+                        alert("请先选择完整的 Context (Station, Product, Line) 以确保数据唯一性。");
+                        return;
+                    }
+                    await fetchData();
+                };
+
+                // Config State
+                const configList = reactive({ item_configs: {} });
+                const globalDefaults = ref({});
+                const showConfigModal = ref(false);
+                const showImportModal = ref(false); // NEW
+                const editingItemName = ref('');
+                const editingConfig = reactive({});
+                const importText = ref(''); // NEW: Text area input
+                const importMode = ref('text'); // 'text' or 'csv'
+                const configSearch = ref('');
+                const showBatchSettings = ref(false);
+                const batchConfig = reactive({
+                    target_shift_sigma: 1.0,
+                    target_arl0: 250,
+                    cooldown_periods: 10,
+                    monitoring_side: 'upper'
+                });
+
+                // Batch Selection
+                const selectedItems = ref([]);
+
+                const configFilters = reactive({
+                    itemName: '',
+                    product: '',
+                    station: '',
+                    line: ''
+                });
+
+                const filteredConfigs = computed(() => {
+                    const all = configList.item_configs;
+                    const result = {};
+
+                    // Filter terms
+                    const fName = (configFilters.itemName || '').toLowerCase();
+                    const fProduct = (configFilters.product || '').toLowerCase();
+                    const fStation = (configFilters.station || '').toLowerCase();
+                    const fLine = (configFilters.line || '').toLowerCase();
+
+                    for (const key in all) {
+                        const conf = all[key];
+                        // Parse Key or Use Stored Metadata
+                        let product = '', line = '', station = '', itemName = key;
+
+                        // Priority 1: Use stored metadata if available (from manual import)
+                        if (conf.meta_data) {
+                            product = conf.meta_data.product || '';
+                            line = conf.meta_data.line || '';
+                            station = conf.meta_data.station || '';
+                            // If key is composite, extract true item name, otherwise use key
+                            if (key.includes('::')) {
+                                const parts = key.split('::');
+                                itemName = parts[parts.length - 1];
+                            }
+                        }
+                        // Priority 2: Parse from Key (legacy/auto-generated)
+                        else if (key.includes('::')) {
+                            const parts = key.split('::');
+                            if (parts.length === 4) {
+                                [product, line, station, itemName] = parts;
+                            }
+                        }
+
+                        // precise matching logic
+                        if (fName && !itemName.toLowerCase().includes(fName)) continue;
+                        if (fProduct && !product.toLowerCase().includes(fProduct)) continue;
+                        if (fStation && !station.toLowerCase().includes(fStation)) continue;
+                        if (fLine && !line.toLowerCase().includes(fLine)) continue;
+
+                        result[key] = {
+                            conf: conf,
+                            meta: {
+                                product: product.toUpperCase(),
+                                line: line.toUpperCase(),
+                                station: station.toUpperCase(),
+                                item_name: itemName
+                            }
+                        };
+                    }
+                    return result;
+                });
+
+                const isAllSelected = computed(() => {
+                    const allKeys = Object.keys(filteredConfigs.value);
+                    return allKeys.length > 0 && selectedItems.value.length === allKeys.length;
+                });
+
+                const toggleSelectAll = () => {
+                    if (isAllSelected.value) {
+                        selectedItems.value = [];
+                    } else {
+                        selectedItems.value = Object.keys(filteredConfigs.value);
+                    }
+                };
+
+                const batchDelete = async () => {
+                    if (selectedItems.value.length === 0) return;
+                    if (!confirm(`Are you sure you want to delete ${selectedItems.value.length} items? This cannot be undone.`)) return;
+
+                    try {
+                        const res = await fetch('/api/v1/configs/batch-delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ items: selectedItems.value })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert(data.message);
+                            selectedItems.value = [];
+                            fetchConfigs();
+                        } else {
+                            alert('Batch delete failed: ' + (data.detail || 'Unknown error'));
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert('Network error');
+                    }
+                };
+
+                // Format Time
+                const formatTime = (isoStr) => {
+                    if (!isoStr) return '-';
+                    const d = new Date(isoStr);
+                    return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                };
+
+                // Helper: Calculate H
+                const calculateH = (shift, arl0) => {
+                    if (!shift || !arl0 || shift <= 0 || arl0 <= 1) return '-';
+                    // Formula: h = (2 / shift^2) * ln(arl0)
+                    const h = (2.0 / (shift * shift)) * Math.log(arl0);
+                    return h.toFixed(4);
+                };
+
+                // --- Config Methods ---
+                const fetchConfigs = async () => {
+                    try {
+                        const res = await fetch('/api/v1/configs');
+                        const data = await res.json();
+                        configList.item_configs = data.item_configs;
+                        globalDefaults.value = data.global_defaults;
+                    } catch (e) {
+                        console.error("Failed to load configs", e);
+                    }
+                };
+
+                const saveGlobalConfig = async () => {
+                    try {
+                        const res = await fetch('/api/v1/configs/global', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(globalDefaults.value)
+                        });
+                        if (res.ok) {
+                            alert('全局策略已更新并广播到所有检测器!');
+                            fetchConfigs();
+                        } else {
+                            alert('Global config update failed');
+                        }
+                    } catch (e) { console.error(e); alert('Network error'); }
+                };
+
+                const batchContext = reactive({ product: '', line: '', station: '' }); // NEW
+
+                const batchImport = async () => {
+                    if (!importText.value.trim()) return;
+
+                    // Split by newlines, taking first column if comma/tab separated
+                    const items = importText.value.split(/\n/).map(line => {
+                        line = line.trim();
+                        if (!line) return null;
+                        // Handle CSV row: "ItemName, ..."
+                        if (line.includes(',')) return line.split(',')[0].trim();
+                        if (line.includes('\t')) return line.split('\t')[0].trim();
+                        return line;
+                    }).filter(Boolean);
+
+                    if (items.length === 0) {
+                        alert('无有效监控项 (No valid items found)');
+                        return;
+                    }
+
+                    // Enforce Mandatory Metadata
+                    if (!batchContext.product || !batchContext.station || !batchContext.line) {
+                        alert('错误：必须指定 产品(Product)、工站(Station) 和 产线(Line)！\n这些参数定义了检测服务的生效范围。');
+                        return;
+                    }
+
+                    // Construct meta_data (Force Lowercase)
+                    const meta_data = {
+                        product: batchContext.product.trim().toLowerCase(),
+                        station: batchContext.station.trim().toLowerCase(),
+                        line: batchContext.line.trim().toLowerCase()
+                    };
+
+                    try {
+                        const res = await fetch('/api/v1/items/batch-import', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                items: items,
+                                config: showBatchSettings.value ? batchConfig : null,
+                                meta_data: meta_data
+                            })
+                        });
+                        console.log("Batch Import Payload:", { items, meta_data, config: batchConfig }); // DEBUG log
+                        const data = await res.json();
+                        if (res.ok) {
+                            alert(data.message);
+                            showImportModal.value = false;
+                            importText.value = '';
+                            batchContext.product = ''; // Reset
+                            batchContext.line = '';
+                            batchContext.station = '';
+                            fetchConfigs();
+                            fetchOptions(); // update dropdowns too
+                        } else {
+                            alert('Import failed');
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert('Network Error');
+                    }
+                };
+
+                const openConfigEdit = (name, conf) => {
+                    editingItemName.value = name;
+                    // Merge global defaults if value is missing
+                    Object.assign(editingConfig, {
+                        target_shift_sigma: conf.target_shift_sigma ?? globalDefaults.value.target_shift_sigma,
+                        target_arl0: conf.target_arl0 ?? globalDefaults.value.target_arl0,
+                        cooldown_periods: conf.cooldown_periods ?? globalDefaults.value.cooldown_periods,
+                        mu0: conf.mu0, // mu0 optional defined at item level
+                        monitoring_side: conf.monitoring_side || 'upper', // default
+                        base_uph: conf.base_uph ?? 500, // new
+                        penalty_strength: conf.penalty_strength ?? 1.0 // new
+                    });
+                    showConfigModal.value = true;
+                };
+
+                const saveConfig = async () => {
+                    try {
+                        const res = await fetch(`/api/v1/configs/${editingItemName.value}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(editingConfig)
+                        });
+                        if (res.ok) {
+                            showConfigModal.value = false;
+                            fetchConfigs(); // Refresh list
+                            alert('配置更新成功! (实时生效)');
+                        } else {
+                            alert('Update failed');
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        alert('Network error');
+                    }
+                };
+
+                const deleteItem = async (itemName) => {
+                    if (!confirm(`Are you sure you want to delete item "${itemName}"? This cannot be undone.`)) {
+                        return;
+                    }
+                    try {
+                        const res = await fetch(`/api/v1/configs/${itemName}`, {
+                            method: 'DELETE'
+                        });
+                        if (res.ok) {
+                            alert(`Item ${itemName} deleted successfully`);
+                            fetchConfigs();
+                        } else {
+                            alert('Delete failed');
+                        }
+                    } catch (e) { console.error(e); alert('Network error'); }
+                };
+
+
+                // --- Dashboard Methods ---
+
+                // (Logic moved to searchHistory)
+
+                const openDetail = async (record) => {
+                    selectedRecord.value = record;
+                    showModal.value = true;
+
+                    // 计算前后 48 小时 (确保足够覆盖 30+ 周期)
+                    const centerTime = new Date(record.timestamp);
+                    const startTime = new Date(centerTime.getTime() - 48 * 60 * 60 * 1000).toISOString();
+                    const endTime = new Date(centerTime.getTime() + 48 * 60 * 60 * 1000).toISOString();
+
+                    const params = new URLSearchParams();
+                    params.append('item_name', record.item_name);
+                    params.append('start_time', startTime);
+                    params.append('end_time', endTime);
+
+                    // Fetch context data
+                    const res = await fetch(`/api/v1/history?${params.toString()}`);
+                    const data = await res.json();
+
+                    await nextTick(); // Wait for DOM
+                    renderDetailChart(data);
+                };
+
+                const renderDetailChart = (data) => {
+                    if (detailChart) detailChart.dispose();
+                    detailChart = echarts.init(document.getElementById('detailChart'));
+
+                    const timestamps = data.map(r => formatTime(r.timestamp));
+                    detailChart.setOption({
+                        title: { text: '30周期全息快照', left: 'center' },
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                        legend: { data: ['Value', 'CUSUM', 'Threshold'], top: 30 },
+                        grid: { bottom: 50, right: 50, left: 50 },
+                        xAxis: { type: 'category', data: timestamps },
+                        yAxis: [{ type: 'value', name: 'Val' }, { type: 'value', name: 'Score' }],
+                        dataZoom: [{ type: 'inside' }],
+                        series: [
+                            { name: 'Value', type: 'line', data: data.map(r => r.value), yAxisIndex: 0, color: '#3b82f6' },
+                            { name: 'CUSUM', type: 'line', data: data.map(r => r.s_plus), yAxisIndex: 1, color: '#f59e0b', width: 3 },
+                            { name: 'Threshold', type: 'line', data: data.map(r => r.h_value), yAxisIndex: 1, lineStyle: { type: 'dashed', color: '#ef4444' } }
+                        ],
+                        // MarkLine: 标出报警时刻
+                        graphic: [{ type: 'line', shape: { x1: '50%', y1: 10, x2: '50%', y2: '90%' }, style: { stroke: 'rgba(255,0,0,0.3)', lineWidth: 1 } }]
+                    });
+                };
+
+
+                const fetchOptions = async () => {
+                    try {
+                        // Build query
+                        let query = '?';
+                        if (filters.item_name) query += `item_name=${encodeURIComponent(filters.item_name)}&`;
+                        if (filters.station) query += `station=${encodeURIComponent(filters.station)}&`;
+                        if (filters.product) query += `product=${encodeURIComponent(filters.product)}&`;
+                        if (filters.line) query += `line=${encodeURIComponent(filters.line)}&`;
+
+                        // Add cache buster
+                        query += `_t=${new Date().getTime()}`;
+
+                        console.log('Fetching Options with query:', query);
+
+                        const response = await fetch(`/api/v1/options${query}`);
+                        const data = await response.json();
+
+                        // console.log('Options received:', data);
+                        options.value = data;
+                    } catch (error) {
+                        console.error('Failed to fetch options:', error);
+                    }
+                };
+
+                // Expose to template
+                const searchHistoryTrigger = searchHistory;
+
+                onMounted(() => {
+                    fetchConfigs();
+                    fetchOptions(); // 加载下拉菜单
+                    // Removed automatic fetchData() to enforce manual search
+                    window.addEventListener('resize', () => {
+                        mainChart && mainChart.resize();
+                        baselineChart && baselineChart.resize();
+                        detailChart && detailChart.resize();
+                    });
+                });
+
+                const openImportModal = () => {
+                    // Populate batchConfig with current defaults
+                    Object.assign(batchConfig, {
+                        target_shift_sigma: globalDefaults.value.target_shift_sigma,
+                        target_arl0: globalDefaults.value.target_arl0,
+                        cooldown_periods: globalDefaults.value.cooldown_periods,
+                        monitoring_side: globalDefaults.value.monitoring_side || 'upper'
+                    });
+                    showImportModal.value = true;
+                };
+
+                // File Upload Logic
+                const fileInput = ref(null);
+                const triggerFileUpload = () => {
+                    fileInput.value.click();
+                };
+                const handleFileUpload = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+
+                    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+                    if (isExcel) {
+                        reader.onload = (e) => {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+
+                            // 读取第一个 Sheet
+                            const firstSheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[firstSheetName];
+
+                            // 转换为 JSON (header: 1 返回二维数组)
+                            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                            // 提取有效的第一列数据 (排除空行)
+                            const items = jsonData.map(row => row[0]).filter(item => item && String(item).trim() !== "");
+
+                            importText.value = items.join('\n');
+                        };
+                        reader.readAsArrayBuffer(file);
+                    } else {
+                        // Text / CSV
+                        reader.onload = (e) => {
+                            const content = e.target.result;
+                            importText.value = content;
+                        };
+                        reader.readAsText(file);
+                    }
+
+                    // Reset input so same file can be selected again
+                    event.target.value = '';
+                };
+
+                return {
+                    currentTab,
+                    filters, options, fetchData, alertRecords, formatTime,
+                    fetchOptions, searchHistory, // Exposed for template
+                    showModal, selectedRecord, openDetail,
+                    // Config Exports
+                    configList, globalDefaults, showConfigModal, editingItemName, editingConfig,
+                    fetchConfigs, openConfigEdit, saveConfig, deleteItem,
+                    // Import Exports
+                    showImportModal, importText, batchImport, saveGlobalConfig,
+                    openImportModal, showBatchSettings, batchConfig, batchContext, // Export batchContext
+                    fileInput, triggerFileUpload, handleFileUpload,
+                    configSearch, filteredConfigs, configFilters, // Export configFilters
+                    // Helper
+                    calculateH,
+                    // Selection
+                    selectedItems, isAllSelected, toggleSelectAll, batchDelete
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

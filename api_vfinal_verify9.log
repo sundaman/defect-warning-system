@@ -1,0 +1,15 @@
+INFO:     Started server process [83976]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58273 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+INFO:     127.0.0.1:58275 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+>>> ENTERING ingest_data. ManagerID=6024027296
+[DEBUG-CORE] Recalculating H. Shift=1.0, ARL0=250.0
+INFO:     127.0.0.1:58276 - "POST /api/v1/data/ingest HTTP/1.1" 200 OK
+INFO:DefectWarningAPI:🚀 [PUSH ALERT] Item: TEST_HOT_RELOAD_01, Time: 2026-01-01T10:00:00
+INFO:     127.0.0.1:58277 - "GET /api/v1/history?item_name=TEST_HOT_RELOAD_01&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58278 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+>>> ENTERING ingest_data. ManagerID=6024027296
+INFO:     127.0.0.1:58279 - "POST /api/v1/data/ingest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58280 - "GET /api/v1/history?item_name=TEST_HOT_RELOAD_01&limit=1 HTTP/1.1" 200 OK

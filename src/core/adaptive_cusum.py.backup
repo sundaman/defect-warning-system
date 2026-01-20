@@ -1,0 +1,144 @@
+# detectors.py
+import numpy as np
+from datetime import datetime
+from typing import Dict
+from .baseline_updater import AdaptiveBaseline
+from .k_updater import AdaptiveKUpdater
+
+
+class AdaptiveCUSUMDetector:
+    def __init__(self, mu0, base_uph, base_h=0.007,
+                  min_uph_ratio=0.5, min_detection_ratio=0.15,
+                  min_k=0.001,
+                  use_standardization=True,  # 是否使用标准化残差方法（推荐）
+                  use_arl=True,  # 是否使用ARL理论设计参数（推荐）
+                  target_shift_sigma=1.0,  # 要检测的最小偏移（单位：σ）
+                  target_arl0=250.0):  # 目标ARL₀（控制误报率）
+                  # ========== FIR CUSUM（P1优化）==========
+                  use_fir=False,  # 是否使用FIR CUSUM（P1优化）
+                  fir_initial_ratio=0.25,  # FIR初始值比例（S₀ = h × fir_initial_ratio）
+                  fir_duration=700,  # FIR持续时间（样本数）
+                  # ========== EWMA参数更新（P2优化）==========
+                  use_ewma=False,  # 是否使用EWMA参数更新
+                  ewma_lambda=0.2,  # EWMA衰减因子（新数据权重20%）
+         """
+         self.mu0 = mu0
+         self.base_uph = base_uph
+         self.base_h = base_h
+         self.min_uph_ratio = min_uph_ratio
+         self.min_detection_ratio = min_detection_ratio
+         self.min_k = min_k
+         self.use_standardization = use_standardization
+         self.use_arl = use_arl
+         self.target_shift_sigma = target_shift_sigma
+         self.target_arl0 = target_arl0
+         
+         # 初始化状态
+         self.S_plus = 0.0
+         
+         # FIR相关状态
+         self.use_fir = use_fir
+         self.fir_initial_ratio = fir_initial_ratio
+         self.fir_duration = fir_duration
+         self.samples_since_reset = 0  # 用于FIR计时
+         self.fir_active_start_time = None  # FIR开始时间
+         
+         # EWMA相关状态
+         self.use_ewma = use_ewma
+         self.ewma_lambda = ewma_lambda
+        else:
+            # 非FIR模式：从0开始累积
+            if self.use_standardization:
+                std_baseline = self._calculate_defect_rate_std(current_baseline, self.base_uph)
+                std_current = self._calculate_defect_rate_std(current_baseline, current_uph)
+                
+                if std_baseline == 0:
+                    threshold_multiplier = 1.0
+                else:
+                    threshold_multiplier = std_current / std_baseline
+                
+                if uph_ratio < self.min_uph_ratio:
+                    extra_penalty = (self.min_uph_ratio / uph_ratio - 1) ** 0.5
+                    threshold_multiplier *= (1 + extra_penalty)
+                
+                x_standardized = (x - current_baseline) / std_current
+                K_standardized = adjusted_K / std_current
+                h_standardized = adjusted_h / std_current
+            else:
+                uph_ratio = current_uph / self.base_uph
+                if uph_ratio >= 1:
+                    threshold_multiplier = 1.0
+                else:
+                    threshold_multiplier = np.sqrt(self.base_uph / current_uph)
+                
+                if uph_ratio < self.min_uph_ratio:
+                    extra_penalty = (self.min_uph_ratio / uph_ratio - 1) ** 0.5
+                    threshold_multiplier *= (1 + extra_penalty)
+                
+                deviation = x - current_baseline
+                K = adjusted_K
+                h = adjusted_h * threshold_multiplier
+                
+                prev_S = self.S_plus
+                self.S_plus = max(0, prev_S + (deviation - K))
+
+    def _reset(self):
+        """报警后重置累积和"""
+        if self.use_fir:
+            # FIR CUSUM：从h/4开始累积
+            self.S_plus = self.base_h * self.fir_initial_ratio
+            self.fir_active_start_time = None
+            self.samples_since_reset = 0
+        else:
+            # 正常模式：从0开始
+            self.S_plus = 0.0
+
+    def get_current_status(self) -> Dict:
+        """返回当前检测状态和计算过程"""
+        # 获取当前基础不良率
+        current_baseline = self.baseline_updater.get_current_baseline()
+        if current_baseline is None:
+            current_baseline = self.mu0
+        
+        # 获取当前K值
+        current_k = self.k_updater.get_current_k()
+        if current_k is None:
+            current_k = 0.005
+        
+        status = {
+            "cumulative_sum": self.S_plus,
+            "calculation_details": self.last_calculation,
+            "baseline": current_baseline,
+            "baseline_updates": len(self.baseline_updater.update_history),
+            "k_value": current_k,
+            "k_updates": len(self.k_updater.update_history)
+        }
+        
+        # 如果有最近的基础不良率更新记录，添加更新详情
+        if self.baseline_updater.update_history:
+            latest_baseline_update = self.baseline_updater.update_history[-1]
+            status["latest_baseline_update"] = {
+                "timestamp": latest_baseline_update.timestamp,
+                "old_value": latest_baseline_update.old_value,
+                "new_value": latest_baseline_update.new_value,
+                "change_ratio": ((latest_baseline_update.new_value - latest_baseline_update.old_value) 
+                               / latest_baseline_update.old_value * 100),
+                "is_limited": latest_baseline_update.is_limited,
+                "valid_points": latest_baseline_update.valid_points
+            }
+        
+        # 如果有最近的K值更新记录，添加更新详情
+        if self.k_updater.update_history:
+            latest_k_update = self.k_updater.update_history[-1]
+            status["latest_k_update"] = {
+                "timestamp": latest_k_update.timestamp,
+                "old_value": latest_k_update.old_value,
+                "new_value": latest_k_update.new_value,
+                "change_ratio": ((latest_k_update.new_value - latest_k_update.old_value) 
+                               / latest_k_update.old_value * 100),
+                "is_limited": latest_k_update.is_limited,
+                "valid_points": latest_k_update.valid_points,
+                "std": latest_k_update.std
+            }
+        
+        return status

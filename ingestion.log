@@ -1,0 +1,36 @@
+/Users/luxsan-ict/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Waiting for API server to start...
+API Server is UP!
+Loading data from /Users/luxsan-ict/.opencode/Defect Early Warning/data/generated/defect_test_data_v2.csv...
+Registering Item: S01_CABLE_TEAR_3_1
+Starting ingestion of 10000 rows...
+[0/10000] Processed. Match Rate: 100.00%
+[500/10000] Processed. Match Rate: 100.00%
+[1000/10000] Processed. Match Rate: 100.00%
+[1500/10000] Processed. Match Rate: 100.00%
+[2000/10000] Processed. Match Rate: 100.00%
+[2500/10000] Processed. Match Rate: 100.00%
+[3000/10000] Processed. Match Rate: 100.00%
+[3500/10000] Processed. Match Rate: 99.97%
+[4000/10000] Processed. Match Rate: 99.90%
+[4500/10000] Processed. Match Rate: 99.71%
+[5000/10000] Processed. Match Rate: 99.74%
+[5500/10000] Processed. Match Rate: 99.64%
+[6000/10000] Processed. Match Rate: 99.57%
+[6500/10000] Processed. Match Rate: 99.60%
+[7000/10000] Processed. Match Rate: 99.60%
+[7500/10000] Processed. Match Rate: 99.63%
+[8000/10000] Processed. Match Rate: 99.63%
+[8500/10000] Processed. Match Rate: 99.65%
+[9000/10000] Processed. Match Rate: 99.67%
+[9500/10000] Processed. Match Rate: 99.68%
+
+Simulation Completed in 20.45s (489.1 req/s)
+Total: 10000, Success: 10000
+Consistency Match: 9970/10000 (99.70%)
+
+✅ Data is now populated in database.
+👉 Please open Dashboard to view: http://127.0.0.1:8000/
+   Enter Item Name: S01_CABLE_TEAR_3_1
+   (You may not need date range if using 'select all', or set range around 2023-08-20T08:00:00)

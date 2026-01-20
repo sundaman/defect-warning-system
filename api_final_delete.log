@@ -1,0 +1,94 @@
+INFO:     Started server process [7063]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+>>> ENTERING ingest_data. ManagerID=4830570576
+INFO:     127.0.0.1:64633 - "POST /api/v1/data/ingest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64634 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64635 - "DELETE /api/v1/configs/TEST_DELETE_ITEM HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64636 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49758 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49785 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49816 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50088 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50102 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50105 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50106 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50183 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2024-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50279 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-12-31T00%3A00%3A00&end_time=2024-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50434 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-12-31T05%3A00%3A00.000Z&end_time=2024-01-04T05%3A00%3A00.000Z HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50803 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50803 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50805 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50820 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+[DEBUG-CORE] Recalculating H. Shift=1.5, ARL0=300.0\n>>> ENTERING update_global_config. ManagerID=4830570576\n>>> Detectors count: 0\nINFO:     127.0.0.1:51088 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51088 - "GET /api/v1/configs HTTP/1.1" 200 OK
+>>> ENTERING update_global_config. ManagerID=4830570576\n>>> Detectors count: 0\nINFO:     127.0.0.1:51114 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51133 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51671 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51735 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51735 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51746 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=TEST&product=DEMO&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51757 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&product=Phone15&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51757 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&product=Phone15&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51757 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&product=Phone15&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51757 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&station=S01&product=Phone15&start_time=2025-01-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53921 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53921 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53922 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53937 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63761 - "PUT /api/v1/configs/DEMO_YIELD_01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63761 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63918 - "PUT /api/v1/configs/TEST_ITEM_102 HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:64361 - "POST /api/v1/configs/S01_TEST_EXISTING HTTP/1.1" 405 Method Not Allowed
+>>> ENTERING update_global_config. ManagerID=4830570576\n>>> Detectors count: 0\nINFO:     127.0.0.1:64362 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64366 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64367 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64368 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64370 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64371 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64457 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64491 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64764 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64835 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64901 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65213 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65213 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65214 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65234 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65422 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65431 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65433 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65458 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65458 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65460 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65476 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65523 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49163 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49165 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49782 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49796 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49798 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49799 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50213 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50213 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50214 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50231 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50288 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50306 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50308 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50373 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50391 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50392 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50552 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50557 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50559 - "GET /api/v1/options HTTP/1.1" 200 OK

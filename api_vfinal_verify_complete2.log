@@ -1,0 +1,27 @@
+INFO:     Started server process [96359]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61213 - "HEAD / HTTP/1.1" 405 Method Not Allowed
+>>> ENTERING update_global_config. ManagerID=5055396832\n>>> Detectors count: 0\n[DEBUG] Global config propagated to 0 detectors.\nINFO:     127.0.0.1:61216 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+>>> ENTERING ingest_data. ManagerID=5055396832
+[DEBUG-CORE] Recalculating H. Shift=1.0, ARL0=250.0\n   -> New base_h: 11.042921835724492\n[DEBUG-MGR] Calling update for TEST_HOT_RELOAD_01\n[DEBUG-CORE] Detector Update. BaseH=11.042921835724492\n[DEBUG-MGR] Update returned for TEST_HOT_RELOAD_01\nINFO:     127.0.0.1:61217 - "POST /api/v1/data/ingest HTTP/1.1" 200 OK
+INFO:DefectWarningAPI:🚀 [PUSH ALERT] Item: TEST_HOT_RELOAD_01, Time: 2026-01-01T10:00:00
+INFO:     127.0.0.1:61218 - "GET /api/v1/history?item_name=TEST_HOT_RELOAD_01&limit=1 HTTP/1.1" 200 OK
+>>> ENTERING update_global_config. ManagerID=5055396832\n>>> Detectors count: 1\n[DEBUG] Updating detector TEST_HOT_RELOAD_01 with global config: {'target_shift_sigma': 1.0, 'target_arl0': 1000.0}\n[DEBUG-CORE] Recalculating H. Shift=1.0, ARL0=250.0\n   -> New base_h: 11.042921835724492\n[DEBUG-CORE] Recalculating H. Shift=1.0, ARL0=1000.0\n   -> New base_h: 13.815510557964274\n[DEBUG] Global config propagated to 1 detectors.\nINFO:     127.0.0.1:61219 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+>>> ENTERING ingest_data. ManagerID=5055396832
+[DEBUG-MGR] Calling update for TEST_HOT_RELOAD_01\n[DEBUG-CORE] Detector Update. BaseH=13.815510557964274\n[DEBUG-MGR] Update returned for TEST_HOT_RELOAD_01\nINFO:     127.0.0.1:61220 - "POST /api/v1/data/ingest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61221 - "GET /api/v1/history?item_name=TEST_HOT_RELOAD_01&limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62062 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62084 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62086 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62087 - "GET /api/v1/history?item_name=S01_CABLE_TEAR_3_1&start_time=2023-08-17T00%3A00%3A00&end_time=2026-01-17T23%3A59%3A59&limit=20000 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62208 - "POST /api/v1/items/batch-import HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62208 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62215 - "GET /api/v1/options HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62232 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62232 - "GET /api/v1/configs HTTP/1.1" 200 OK
+>>> ENTERING update_global_config. ManagerID=5055396832\n>>> Detectors count: 1\n[DEBUG] Updating detector TEST_HOT_RELOAD_01 with global config: {'target_shift_sigma': 1.5, 'target_arl0': 300.0, 'cooldown_periods': 6, 'enable_cooldown': True}\n[DEBUG-CORE] Recalculating H. Shift=1.5, ARL0=1000.0\n   -> New base_h: 6.140226914650788\n[DEBUG-CORE] Recalculating H. Shift=1.5, ARL0=300.0\n   -> New base_h: 5.070028866361067\n[DEBUG] Global config propagated to 1 detectors.\nINFO:     127.0.0.1:62322 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62328 - "GET /api/v1/configs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "PUT /api/v1/configs/DEMO_TEMP_01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62526 - "GET /api/v1/configs HTTP/1.1" 200 OK

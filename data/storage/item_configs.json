@@ -1,0 +1,21 @@
+{
+  "__GLOBAL_CONFIG__": {
+    "target_shift_sigma": 1.5,
+    "target_arl0": 1000.0,
+    "cooldown_periods": 8,
+    "enable_cooldown": true,
+    "monitoring_side": "upper"
+  },
+  "testproduct::l1::s01::CABLE_TEAR_3_1": {
+    "mu0": 0.001,
+    "base_uph": 500,
+    "target_shift_sigma": 1.5,
+    "monitoring_side": "upper",
+    "item_type": "measurement",
+    "meta_data": {
+      "station": "S01",
+      "product": "TestProduct",
+      "line": "L1"
+    }
+  }
+}
