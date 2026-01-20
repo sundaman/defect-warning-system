@@ -101,8 +101,6 @@ class AdaptiveCUSUMDetector:
         )
 
     def _recalculate_h(self):
-        import sys
-        sys.stderr.write(f"[DEBUG-CORE] Recalculating H. Shift={self._target_shift_sigma}, ARL0={self._target_arl0}\\n")
         if self.use_arl:
             delta = self._target_shift_sigma
             if delta > 0:

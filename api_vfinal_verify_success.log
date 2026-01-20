@@ -1,9 +1,0 @@
-INFO:     Started server process [90159]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-INFO:     127.0.0.1:59855 - "HEAD / HTTP/1.1" 405 Method Not Allowed
->>> ENTERING update_global_config. ManagerID=5346991312\n>>> Detectors count: 0\n[DEBUG] Global config propagated to 0 detectors.\nINFO:     127.0.0.1:59859 - "PUT /api/v1/configs/global HTTP/1.1" 200 OK
->>> ENTERING ingest_data. ManagerID=5346991312
-[DEBUG-CORE] Recalculating H. Shift=1.0, ARL0=250.0\nERROR:DefectWarningAPI:Error: update() got an unexpected keyword argument 'x'
-INFO:     127.0.0.1:59860 - "POST /api/v1/data/ingest HTTP/1.1" 500 Internal Server Error
